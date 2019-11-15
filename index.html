@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-  <title>warping-machine</title>
+  <title>webcam-augmenter</title>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,6 +11,7 @@
 <body>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
+  <script src="https://unpkg.com/@tensorflow-models/body-pix@2.0.2/dist/body-pix.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.2.2/dist/jszip.min.js"></script>
@@ -19,7 +20,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.106.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/scatter-gl@0.0.1/lib/scatter-gl.min.js"></script>
   <script src="https://d3js.org/d3.v4.js"></script>
-
+  
   <!-- hash64 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
 
@@ -44,40 +45,19 @@
   <script src="https://unpkg.com/prando@5.1.1/dist/Prando.umd.js"></script>
 
   <div>
-    <div style="margin: 10px; border-radius: 10px; box-shadow: 0px 2px 2px rgba(0,0,0,0.20); background: url(/img/warp-sti.jpg); backround-repeat: no-repeat; padding: 20px;">
-      <h1><a href="/">warping-machine</a></h1>
+    <div style="margin: 10px; border-radius: 10px; box-shadow: 0px 2px 2px rgba(0,0,0,0.20); background: green; backround-repeat: no-repeat; padding: 20px;">
+      <h1><a href="/">webcam-greenscreen</a></h1>
     </div>
 
     <div class="VerticalSection" style="display: flex; flex-direction: row;">
 
       <div class="Panel">
         <div class="Panel-content">
-          <h2>1. Image model</h2>
-          <div class="Panel-text">First, load an image model created in <a target="_blank" href="https://teachablemachine.withgoogle.com/train/image">Teachable Machine</a>.  This only accepts zip files uploaded locally.</div>
-        </div>
-        <div class="Panel-actions">
-          <div class="Status" id="model-status"></div>
-          <div class="File Button">
-            <div class="File-caption">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6H20C21.1 6 22 6.9 22 8V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18L2.01 6C2.01 4.9 2.9 4 4 4H10L12 6ZM4 8V18H20V8H4Z" fill="#888"></path>
-              </svg>
-              Open model.zip
-            </div>
-            <input id="upload-model-zip-input" class="fileList" type="file" accept="application/zip">
-          </div>
-          <a class="ExampleLink" href="/data/example-model.zip"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M13 12.17L15.59 9.59L17 11L12 16L7 11L8.41 9.59L11 12.17V4H13V12.17ZM6 15H4V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V15H18V18H6V15Z" fill="#888"></path>
-            </svg>
-            <span>Download example</span>
-          </a>
-        </div>
-      </div>
+          <h2>1. Augment people images</h2>
+          <div class="Panel-text">First, open a project from <a target="_blank" href="https://teachablemachine.withgoogle.com/train/image">Teachable Machine</a> that contains images trained on people (eg, you on your webcam).
 
-      <div class="Panel">
-        <div class="Panel-content">
-          <h2>2. Generalization dataset</h2>
-          <div class="Panel-text">Next, load a project from <a target="_blank" href="https://teachablemachine.withgoogle.com/train/image">Teachable Machine</a> that contains different images than what the model was trained on, but labeled with the same class names.</div>
+          <div style="margin-top: 10px;">Then, watch augmented images be created by masking the background with <a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">BodyPix</a> and compositing them into images from <a href="https://picsum.photos/">picsum.photos</a>.</div>
+          </div>
         </div>
         <div class="Panel-actions">
           <div class="Status" id="generalization-status"></div>
@@ -98,21 +78,8 @@
           </a>
         </div>
       </div>
-
-      <div class="Panel">
-        <div class="Panel-content">
-          <h2>3. Visualize!</h2>
-          <div class="Panel-text">Now you can visualize how well the model did on the generalization set.<br/><br/>Scan through individual classification errors, or compare how the images appear in <a href="https://github.com/tensorflow/tfjs-models/tree/master/mobilenet" target="_blank">MobileNet</a> embedding space versus your model's embedding space.</div>
-        </div>
-        <div class="Panel-actions ButtonList">
-          <button disabled="disabled" id="inspect-button" class="Button">Browse accuracy</button>
-          <button disabled="disabled"id="embeddings-button" class="Button">Visualize embedding space</button>
-          <button disabled="disabled" id="embeddings-3d-button" class="Button">Visualize embeddings in 3D</button>
-          <button disabled="disabled" id="facets-button" class="Button">Explore with Facets Dive</button>
-        </div>
-      </div>
     </div>
-    
+
     <div>
       <div class="Workspace" id="workspace"></div>
       <div id="generalization-preview"></div>

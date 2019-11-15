@@ -38,11 +38,11 @@ class App {
     }
 
     // buttons
-    const canAnalyze = (generalization && model);
-    this.els.embeddingsButton.disabled = !canAnalyze;
-    this.els.embeddings3DButton.disabled = !canAnalyze;
-    this.els.inspectButton.disabled = !canAnalyze;
-    this.els.facetsButton.disabled = !canAnalyze;
+    // const canAnalyze = (generalization && model);
+    // this.els.embeddingsButton.disabled = !canAnalyze;
+    // this.els.embeddings3DButton.disabled = !canAnalyze;
+    // this.els.inspectButton.disabled = !canAnalyze;
+    // this.els.facetsButton.disabled = !canAnalyze;
   }
 }
 
@@ -660,17 +660,8 @@ function addWaitingEl(el) {
 
 export async function main(deps) {
   const els = {
-    modelZipInput: document.querySelector('#upload-model-zip-input'),
-    modelStatus: document.querySelector('#model-status'),
-
     generalizationStatus: document.querySelector('#generalization-status'),
     generalizationZipInput: document.querySelector('#upload-generalization-zip-input'),
-    generalizationPreview: document.querySelector('#generalization-preview'),
-
-    inspectButton: document.querySelector('#inspect-button'),
-    embeddingsButton: document.querySelector('#embeddings-button'),
-    embeddings3DButton: document.querySelector('#embeddings-3d-button'),
-    facetsButton: document.querySelector('#facets-button'),
 
     workspace: document.querySelector('#workspace'),
     log: document.querySelector('#log')
@@ -679,15 +670,6 @@ export async function main(deps) {
   window.app = app; //debug
   app.render();
 
-
-  els.modelZipInput.addEventListener('change', async e => {
-    if (e.target.files.length === 0) return;
-    els.modelStatus.textContent = 'loading...';
-    const [modelZip] = e.target.files;
-    const model = await loadImageModelFromZipFile(modelZip);
-    app.update({model});
-  });
-
   els.generalizationZipInput.addEventListener('change', async e => {
     if (e.target.files.length === 0) return;
     els.generalizationStatus.textContent = 'loading...';
@@ -695,60 +677,148 @@ export async function main(deps) {
     const generalization = await loadImageProjectFromZipFile(projectZip);
     app.update({generalization});
 
-    const previewGeneralizationImages = false;
-    if (previewGeneralizationImages) {
-      els.generalizationPreview.innerHTML = '';
-      await mapExamples(generalization, async (className, blobUrl, index) => {
-        const imgEl = document.createElement('img');
-        imgEl.src = blobUrl;
-        imgEl.width = 224/4;
-        imgEl.height = 224/4;
-        els.generalizationPreview.appendChild(imgEl);
-      });
+    const bodyPix = true;
+    if (bodyPix) {
+      const bodyPixEl = document.createElement('div');
+      els.workspace.appendChild(bodyPixEl);
+      await runBodyPix(generalization, bodyPixEl);
     }
   });
+}
 
-  els.inspectButton.addEventListener('click', async e => {
-    const {model, generalization} = app.readState();
-    if (!model || !generalization) return;
-    els.workspace.textContent = 'working...';
-    await inspect(generalization, model, els.workspace, deps);
+
+
+async function runBodyPix(project, el) {
+  console.log('loading bodypix...');
+  const net = await bodyPix.load();
+
+  // const base = 'ade20k';
+  // const quantizationBytes = 2;
+  // const deepLab = await deeplab.load({base, quantizationBytes});
+  // const colormap = deeplab.getColormap(base);
+  // const labels = deeplab.getLabels(base);
+  // console.log('colormap', colormap);
+  // console.log('labels', labels);
+
+  console.log('segmenting...', net);
+  const uris = await mapExamples(project, async (className, blobUrl, index) => blobUrl);
+  const n = 10;
+  for (var i = 0; i < n; i++) {
+    await Promise.all(uris.map(async (blobUrl, index) => {
+      const containerEl = document.createElement('div');
+      // containerEl.style.display = 'flex';
+      containerEl.style.display = 'inline-block';
+      containerEl.style.marging = '10px';
+      // containerEl.style['flex-direction'] = 'row';
+      el.appendChild(containerEl);
+
+      const imgEl = await imageFromUri(blobUrl);
+      imgEl.width = 224;
+      imgEl.height = 224;
+      // containerEl.appendChild(imgEl);
+
+      // const output = await deepLab.segment(imgEl);
+      // console.log('  output', output);
+      // const {height, width, segmentationMap} = output;
+      // const segmentationPixels = new ImageData(segmentationMap, width, height);
+      // console.log('  segmentationPixels', segmentationPixels);
+      // const overlayEl = canvasOverlay(imgEl, segmentationPixels);
+
+      console.log('  index', index);
+      const segmentation = await net.segmentPerson(imgEl); //, outputStride, segmentationThreshold);
+      console.log('segmentation', segmentation);
+
+      const mask = bodyPix.toMask(segmentation);
+      // const overlayEl = canvasOverlay(imgEl, maskImagePixels);
+
+      const canvas = document.createElement('canvas');
+      const maskBlurAmount = 0.1;
+      const pixelCellWidth = 1;
+      const opacity = 1.0;
+      bodyPix.drawMask(canvas, imgEl, mask, opacity, maskBlurAmount, false, pixelCellWidth);
+      // console.log('  overlayEl', overlayEl);
+      // containerEl.appendChild(canvas);
+
+
+
+      const r = Math.floor(Math.random() * 10000);
+      
+      const sceneImgEl = await new Promise((resolve, reject) => {
+        const imgEl = document.createElement('img');
+        imgEl.onload = () => resolve(imgEl);
+        imgEl.onerror = reject;
+        imgEl.crossOrigin = 'Anonymous';
+        imgEl.src = `https://picsum.photos/244/244?${r}`;
+      });
+      sceneImgEl.width = 224;
+      sceneImgEl.height = 224;
+
+      // containerEl.appendChild(sceneImgEl);
+
+      const sceneCanvas = document.createElement('canvas');
+      const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
+      bodyPix.drawMask(sceneCanvas, sceneImgEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
+      // containerEl.appendChild(sceneCanvas);
+
+      // composite
+      const composited = document.createElement('canvas');
+      composited.width = 224;
+      composited.height = 224;
+
+      // low budget compositing
+      const ctx = composited.getContext('2d');
+      const outFrame = ctx.createImageData(224, 224);
+      const imgFrame = canvas.getContext('2d').getImageData(0, 0, 224, 224);
+      const sceneFrame = sceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
+      let l = imgFrame.data.length / 4;
+      for (let i = 0; i < l; i++) {
+        let r = imgFrame.data[i * 4 + 0];
+        let g = imgFrame.data[i * 4 + 1];
+        let b = imgFrame.data[i * 4 + 2];
+        let a = imgFrame.data[i * 4 + 3];
+        if (r === 0 && g === 0 && b === 0) {;
+          outFrame.data[i * 4 + 0] = sceneFrame.data[i * 4 + 0];
+          outFrame.data[i * 4 + 1] = sceneFrame.data[i * 4 + 1];
+          outFrame.data[i * 4 + 2] = sceneFrame.data[i * 4 + 2];
+          outFrame.data[i * 4 + 3] = sceneFrame.data[i * 4 + 3];
+        } else {
+          outFrame.data[i * 4 + 0] = imgFrame.data[i * 4 + 0];
+          outFrame.data[i * 4 + 1] = imgFrame.data[i * 4 + 1];
+          outFrame.data[i * 4 + 2] = imgFrame.data[i * 4 + 2];
+          outFrame.data[i * 4 + 3] = imgFrame.data[i * 4 + 3];
+        }
+      }
+      ctx.putImageData(outFrame, 0, 0);
+      containerEl.appendChild(composited);
+    }));
+  }
+  
+  
+  
+  // const sortedLegend = getSortedLegend(output);
+}
+
+function canvasOverlay(imgEl, segmentationPixels) {
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.classList.add('Image-overlay');
+  canvas.classList.add('Image-overlay-canvas');
+  canvas.style.width = getComputedStyle(imgEl).width;
+  canvas.style.height = getComputedStyle(imgEl).height;
+  canvas.width = imgEl.width;
+  canvas.height = imgEl.height;
+  ctx.putImageData(segmentationPixels, 0, 0);
+  return canvas;
+}
+
+
+async function imageFromUri(src) {
+  const imgEl = document.createElement('img');
+  await new Promise((resolve, reject) => {
+    imgEl.onload = resolve;
+    imgEl.onerror = reject;
+    imgEl.src = src;
   });
-
-  els.embeddingsButton.addEventListener('click', async e => {
-    const {model, generalization} = app.readState();
-    if (!model || !generalization) return;
-    els.workspace.textContent = 'working...';
-    await embeddings(generalization, model, els.workspace, {
-      umap: { nComponents: 2 }, 
-      sprites: false,
-      color: true
-    });
-  });
-
-  els.embeddings3DButton.addEventListener('click', async e => {
-    const {model, generalization} = app.readState();
-    if (!model || !generalization) return;
-    els.workspace.textContent = 'working...';
-    await embeddings(generalization, model, els.workspace, {
-      umap: { nComponents: 3 }, 
-      sprites: true,
-      color: false
-    });
-  });
-
-  els.facetsButton.addEventListener('click', async e => {
-    const {model, generalization} = app.readState();
-    if (!model || !generalization) return;
-
-    const examples = await mapExamples(generalization, async (className, blobUrl, index) => {
-      const imgEl = document.createElement('img');
-      await setImageSrc(imgEl, blobUrl);
-      const predictions = await model.predict(imgEl);
-      return {className, index, predictions, blobUrl};
-    });
-    const done = addWaitingEl(els.workspace);
-    await deps.facets(els.workspace, examples);
-    done();
-  });
+  return imgEl;
 }

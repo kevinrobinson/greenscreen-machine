@@ -684,8 +684,80 @@ export async function main(deps) {
       await runBodyPix(generalization, bodyPixEl);
     }
   });
+
+  await runWebcam(els.workspace);
 }
 
+async function runWebcam(el) {
+  el.style.margin = '20px';
+
+  console.log('camera-ing...');
+
+  // const video = document.createElement('video');
+  // const canvas = document.createElement('canvas');
+  // el.appendChild(video);
+  // el.appendChild(canvas);
+  // canvas.width = 224;
+  // canvas.height = 224;
+  // video.width = 224;
+  // video.height = 224;
+  // video.autoPlay = 'true';
+  // const videoOptions = {};
+  // await new Promise((resolve, reject) => {
+  //   window.navigator.mediaDevices.getUserMedia({ video: videoOptions }).then(mediaStream => {
+  //     video.srcObject = mediaStream;
+  //     video.addEventListener('loadedmetadata', event => {
+  //         const { videoWidth: vw, videoHeight: vh } = video;
+  //         video.width = vw;
+  //         video.height = vh;
+  //         resolve();
+  //     });
+  //   }, () => {
+  //     reject('Could not open your camera. You may have denied access.');
+  //   });
+  // });
+        
+  const webcam = new tmImage.Webcam({
+    width: 224,
+    height: 224, 
+    flip: false
+  });
+  await webcam.setup({width: 224, height: 224});
+  webcam.play();
+
+  el.appendChild(webcam.webcam);  // bug?
+
+   // bug?
+  webcam.canvas.width = 224;
+  webcam.canvas.height = 224;
+  webcam.webcam.width = 224;
+  webcam.webcam.height = 224;
+  webcam.canvas.style.width = '224px';
+  webcam.canvas.style.height = '224px';
+  webcam.webcam.style.width = '224px';
+  webcam.webcam.style.height = '224px';
+  console.log('webcam.canvas', webcam.canvas);
+  console.log('webcam.webcam', webcam.webcam);
+  webcam.webcam.style.border = '10px solid orange';
+
+
+
+  console.log('loading...');
+  const net = await bodyPix.load();
+  console.log('loaded.');
+  async function tick() {
+    // scaling bug?
+    // console.log('webcam.webcam.videoWidth', webcam.webcam.videoWidth)
+    // console.log('webcam.webcam.videoHeight', webcam.webcam.videoHeight);
+
+    // webcam.update()
+    const composited = await make(net, el, webcam.webcam);
+    composited.style.margin = '20px';
+    composited.style.padding = '5px';
+    requestAnimationFrame(tick);
+  }
+  setTimeout(tick, 100);
+}
 
 
 async function runBodyPix(project, el) {
@@ -725,77 +797,76 @@ async function runBodyPix(project, el) {
       // const overlayEl = canvasOverlay(imgEl, segmentationPixels);
 
       console.log('  index', index);
-      const segmentation = await net.segmentPerson(imgEl); //, outputStride, segmentationThreshold);
-      console.log('segmentation', segmentation);
-
-      const mask = bodyPix.toMask(segmentation);
-      // const overlayEl = canvasOverlay(imgEl, maskImagePixels);
-
-      const canvas = document.createElement('canvas');
-      const maskBlurAmount = 0.1;
-      const pixelCellWidth = 1;
-      const opacity = 1.0;
-      bodyPix.drawMask(canvas, imgEl, mask, opacity, maskBlurAmount, false, pixelCellWidth);
-      // console.log('  overlayEl', overlayEl);
-      // containerEl.appendChild(canvas);
-
-
-
-      const r = Math.floor(Math.random() * 10000);
-      
-      const sceneImgEl = await new Promise((resolve, reject) => {
-        const imgEl = document.createElement('img');
-        imgEl.onload = () => resolve(imgEl);
-        imgEl.onerror = reject;
-        imgEl.crossOrigin = 'Anonymous';
-        imgEl.src = `https://picsum.photos/244/244?${r}`;
-      });
-      sceneImgEl.width = 224;
-      sceneImgEl.height = 224;
-
-      // containerEl.appendChild(sceneImgEl);
-
-      const sceneCanvas = document.createElement('canvas');
-      const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
-      bodyPix.drawMask(sceneCanvas, sceneImgEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
-      // containerEl.appendChild(sceneCanvas);
-
-      // composite
-      const composited = document.createElement('canvas');
-      composited.width = 224;
-      composited.height = 224;
-
-      // low budget compositing
-      const ctx = composited.getContext('2d');
-      const outFrame = ctx.createImageData(224, 224);
-      const imgFrame = canvas.getContext('2d').getImageData(0, 0, 224, 224);
-      const sceneFrame = sceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
-      let l = imgFrame.data.length / 4;
-      for (let i = 0; i < l; i++) {
-        let r = imgFrame.data[i * 4 + 0];
-        let g = imgFrame.data[i * 4 + 1];
-        let b = imgFrame.data[i * 4 + 2];
-        let a = imgFrame.data[i * 4 + 3];
-        if (r === 0 && g === 0 && b === 0) {;
-          outFrame.data[i * 4 + 0] = sceneFrame.data[i * 4 + 0];
-          outFrame.data[i * 4 + 1] = sceneFrame.data[i * 4 + 1];
-          outFrame.data[i * 4 + 2] = sceneFrame.data[i * 4 + 2];
-          outFrame.data[i * 4 + 3] = sceneFrame.data[i * 4 + 3];
-        } else {
-          outFrame.data[i * 4 + 0] = imgFrame.data[i * 4 + 0];
-          outFrame.data[i * 4 + 1] = imgFrame.data[i * 4 + 1];
-          outFrame.data[i * 4 + 2] = imgFrame.data[i * 4 + 2];
-          outFrame.data[i * 4 + 3] = imgFrame.data[i * 4 + 3];
-        }
-      }
-      ctx.putImageData(outFrame, 0, 0);
-      containerEl.appendChild(composited);
+      await make(net, containerEl, imgEl);
     }));
   }
+}
+
+async function make(net, containerEl, rasterEl) {
+  const segmentation = await net.segmentPerson(rasterEl); //, outputStride, segmentationThreshold);
+  console.log('segmentation', segmentation);
+
+  const mask = bodyPix.toMask(segmentation);
+  // const overlayEl = canvasOverlay(rasterEl, maskImagePixels);
+
+  const canvas = document.createElement('canvas');
+  const maskBlurAmount = 0.1;
+  const pixelCellWidth = 1;
+  const opacity = 1.0;
+  bodyPix.drawMask(canvas, rasterEl, mask, opacity, maskBlurAmount, false, pixelCellWidth);
+  // console.log('  overlayEl', overlayEl);
+  // containerEl.appendChild(canvas);
+
+  const r = Math.floor(Math.random() * 10000);
   
-  
-  
-  // const sortedLegend = getSortedLegend(output);
+  const sceneImgEl = await new Promise((resolve, reject) => {
+    const imgEl = document.createElement('img');
+    imgEl.onload = () => resolve(imgEl);
+    imgEl.onerror = reject;
+    imgEl.crossOrigin = 'Anonymous';
+    imgEl.src = `https://picsum.photos/244/244?${r}`;
+  });
+  sceneImgEl.width = 224;
+  sceneImgEl.height = 224;
+
+  // containerEl.appendChild(sceneImgEl);
+
+  const sceneCanvas = document.createElement('canvas');
+  const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
+  bodyPix.drawMask(sceneCanvas, sceneImgEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
+  // containerEl.appendChild(sceneCanvas);
+
+  // composite
+  const composited = document.createElement('canvas');
+  composited.width = 224;
+  composited.height = 224;
+
+  // low budget compositing
+  const ctx = composited.getContext('2d');
+  const outFrame = ctx.createImageData(224, 224);
+  const imgFrame = canvas.getContext('2d').getImageData(0, 0, 224, 224);
+  const sceneFrame = sceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
+  let l = imgFrame.data.length / 4;
+  for (let i = 0; i < l; i++) {
+    let r = imgFrame.data[i * 4 + 0];
+    let g = imgFrame.data[i * 4 + 1];
+    let b = imgFrame.data[i * 4 + 2];
+    let a = imgFrame.data[i * 4 + 3];
+    if (r === 0 && g === 0 && b === 0) {;
+      outFrame.data[i * 4 + 0] = sceneFrame.data[i * 4 + 0];
+      outFrame.data[i * 4 + 1] = sceneFrame.data[i * 4 + 1];
+      outFrame.data[i * 4 + 2] = sceneFrame.data[i * 4 + 2];
+      outFrame.data[i * 4 + 3] = sceneFrame.data[i * 4 + 3];
+    } else {
+      outFrame.data[i * 4 + 0] = imgFrame.data[i * 4 + 0];
+      outFrame.data[i * 4 + 1] = imgFrame.data[i * 4 + 1];
+      outFrame.data[i * 4 + 2] = imgFrame.data[i * 4 + 2];
+      outFrame.data[i * 4 + 3] = imgFrame.data[i * 4 + 3];
+    }
+  }
+  ctx.putImageData(outFrame, 0, 0);
+  containerEl.appendChild(composited);
+  return composited;
 }
 
 function canvasOverlay(imgEl, segmentationPixels) {

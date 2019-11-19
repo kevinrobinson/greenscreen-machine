@@ -16,9 +16,9 @@ things:
 ### take a model you trained with the webcam
 <img alt="training" src="docs/training.png" height="450" />
 
-### add your model predictions
+### add your model predictions to the greenscreens
 <img alt="all-waving" src="docs/all-waving.png" height="600" />
 
-### seems to think there are all 'waving'...
+### seems to see more 'waving' than it should...
 <img alt="mixed" src="docs/mixed.png" height="600" />
 

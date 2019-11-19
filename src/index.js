@@ -3,50 +3,6 @@
 const RANDOM_SEED = 42;
 console.log('RANDOM_SEED', RANDOM_SEED);
 
-class App {
-  constructor(el, els) {
-    this.el = el;
-    this.els = els;
-    this.state = {
-      project: null,
-      generalization: null
-    };
-  }
-
-  readState() {
-    return _.clone(this.state);
-  }
-
-  update(newState) {
-    this.state = {...this.state, ...newState};
-    this.render();
-  }
-
-  render() {
-    // console.log('render');
-    // const pre = document.createElement('pre');
-    // pre.textContent = JSON.stringify(this.state).length;
-    // this.els.log.appendChild(pre);
-    const {generalization, model} = this.state;
-
-
-    if (model) {
-      this.els.modelStatus.textContent = 'ready!';
-    }
-    if (generalization) {
-      this.els.generalizationStatus.textContent = 'ready!';
-    }
-
-    // buttons
-    // const canAnalyze = (generalization && model);
-    // this.els.embeddingsButton.disabled = !canAnalyze;
-    // this.els.embeddings3DButton.disabled = !canAnalyze;
-    // this.els.inspectButton.disabled = !canAnalyze;
-    // this.els.facetsButton.disabled = !canAnalyze;
-  }
-}
-
-
 function debug(...params) {
   console.log(...params); // eslint-disable-line no-console
 }
@@ -280,6 +236,41 @@ function cropTensor(img) {
     const centerWidth = img.shape[1] / 2;
     const beginWidth = centerWidth - (size / 2);
     return img.slice([beginHeight, beginWidth, 0], [size, size, 3]);
+}
+
+// copied
+function newCanvas() {
+  return document.createElement('canvas');
+}
+function cropTo(image, size, flipped = false, canvas = null) {
+    if (!canvas) canvas = newCanvas();
+
+    // image image, bitmap, or canvas
+    let width = image.width;
+    let height = image.height;
+
+    // if video element
+    if (image instanceof HTMLVideoElement) {
+        width = image.videoWidth;
+        height = image.videoHeight;
+    }
+
+    const min = Math.min(width, height);
+    const scale = size / min;
+    const scaledW = Math.ceil(width * scale);
+    const scaledH = Math.ceil(height * scale);
+    const dx = scaledW - size;
+    const dy = scaledH - size;
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, ~~(dx / 2) * -1, ~~(dy / 2) * -1, scaledW, scaledH);
+
+    if (flipped) {
+        ctx.scale(-1, 1);
+        ctx.drawImage(canvas, scaledW * -1, 0);
+    }
+
+    return canvas;
 }
 
 
@@ -658,34 +649,10 @@ function addWaitingEl(el) {
 }
 
 
-export async function main(deps) {
-  const els = {
-    generalizationStatus: document.querySelector('#generalization-status'),
-    generalizationZipInput: document.querySelector('#upload-generalization-zip-input'),
-
-    workspace: document.querySelector('#workspace'),
-    log: document.querySelector('#log')
-  }
-  const app = new App(document.body, els);
-  window.app = app; //debug
-  app.render();
-
-  els.generalizationZipInput.addEventListener('change', async e => {
-    if (e.target.files.length === 0) return;
-    els.generalizationStatus.textContent = 'loading...';
-    const [projectZip] = e.target.files;
-    const generalization = await loadImageProjectFromZipFile(projectZip);
-    app.update({generalization});
-
-    const bodyPix = true;
-    if (bodyPix) {
-      const bodyPixEl = document.createElement('div');
-      els.workspace.appendChild(bodyPixEl);
-      await runBodyPix(generalization, bodyPixEl);
-    }
-  });
-
-  await runWebcam(els.workspace);
+export async function main() {
+  const buttonEl = document.querySelector('.Button');
+  const workspaceEl = document.querySelector('#workspace');
+  buttonEl.addEventListener('click', async e => await runWebcam(workspaceEl));
 }
 
 async function runWebcam(el) {
@@ -717,15 +684,13 @@ async function runWebcam(el) {
   //   });
   // });
         
-  const webcam = new tmImage.Webcam({
-    width: 224,
-    height: 224, 
-    flip: false
-  });
-  await webcam.setup({width: 224, height: 224});
+  const flipped = false;
+  const webcam = new tmImage.Webcam(224, 224, flipped);
+  await webcam.setup();
   webcam.play();
 
   el.appendChild(webcam.webcam);  // bug?
+  el.appendChild(webcam.canvas);  // bug?
 
    // bug?
   webcam.canvas.width = 224;
@@ -738,9 +703,54 @@ async function runWebcam(el) {
   webcam.webcam.style.height = '224px';
   console.log('webcam.canvas', webcam.canvas);
   console.log('webcam.webcam', webcam.webcam);
-  webcam.webcam.style.border = '10px solid orange';
+  webcam.webcam.style.margin = '10px';
+  webcam.canvas.style.margin = '10px';
+  webcam.webcam.style.outline = '10px solid red'; // border impacts sizing!
+  webcam.canvas.style.outline = '10px solid orange'; // border impacts sizing!
 
 
+  // scenes
+  // good ones:
+  // https://picsum.photos/id/479/224/224
+  const goodNumbers = [421, 616, 479];
+  const sceneUrls = _.range(0, 9).map(i => {
+    const num = Math.floor(Math.random() * 999);
+    return `https://picsum.photos/id/${num}/224/224`
+    // imgEl.src = `https://picsum.photos/224/224?${r}`;
+    // imgEl.src = 'https://picsum.photos/id/210/224/224';
+  });
+
+  // load images
+  let sceneImgEls = [];
+  for (var i = 0; i < sceneUrls.length; i++) {
+    const sceneImgEl = await new Promise((resolve, reject) => {
+      const imgEl = document.createElement('img');
+      imgEl.onload = () => resolve(imgEl);
+      imgEl.onerror = reject;
+      imgEl.crossOrigin = 'Anonymous';
+      imgEl.src = sceneUrls[i];
+    });
+    sceneImgEl.width = 224;
+    sceneImgEl.height = 224;
+    sceneImgEl.style.width = '224px';
+    sceneImgEl.style.height = '224px';
+    sceneImgEls[i] = sceneImgEl;
+  }
+
+  // realtime
+  const realtimeContainerEl = document.createElement('div');
+  realtimeContainerEl.classList.add('RealtimeContainer');
+  const realtimeEls = sceneUrls.map((url, index) => {
+    const realtimeEl = document.createElement('canvas');
+    realtimeEl.classList.add('Realtime');
+    realtimeEl.width = 224;
+    realtimeEl.height = 224;
+    realtimeEl.style.width = '224px';
+    realtimeEl.style.height = '224px';
+    realtimeContainerEl.appendChild(realtimeEl);
+    return realtimeEl;
+  });
+  el.appendChild(realtimeContainerEl);
 
   console.log('loading...');
   const net = await bodyPix.load();
@@ -750,93 +760,95 @@ async function runWebcam(el) {
     // console.log('webcam.webcam.videoWidth', webcam.webcam.videoWidth)
     // console.log('webcam.webcam.videoHeight', webcam.webcam.videoHeight);
 
-    // webcam.update()
-    const composited = await make(net, el, webcam.webcam);
-    composited.style.margin = '20px';
-    composited.style.padding = '5px';
+    webcam.update();
+    const croppedEl = cropTo(webcam.canvas, 224, flipped);
+    console.log('segmenting...');
+    const segmentation = await net.segmentPerson(croppedEl); //, outputStride, segmentationThreshold);
+
+    console.log('computing masks...');
+    const imageMask = bodyPix.toMask(segmentation);
+    const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
+
+    for (var i = 0; i < sceneUrls.length; i++) {
+      const compositedEl = composite(croppedEl, imageMask, sceneImgEls[i], sceneMask);
+      redraw(compositedEl, realtimeEls[i]);
+    }
+
     requestAnimationFrame(tick);
   }
   setTimeout(tick, 100);
 }
 
 
-async function runBodyPix(project, el) {
-  console.log('loading bodypix...');
-  const net = await bodyPix.load();
+// async function runBodyPix(project, el) {
+//   console.log('loading bodypix...');
+//   const net = await bodyPix.load();
 
-  // const base = 'ade20k';
-  // const quantizationBytes = 2;
-  // const deepLab = await deeplab.load({base, quantizationBytes});
-  // const colormap = deeplab.getColormap(base);
-  // const labels = deeplab.getLabels(base);
-  // console.log('colormap', colormap);
-  // console.log('labels', labels);
+//   // const base = 'ade20k';
+//   // const quantizationBytes = 2;
+//   // const deepLab = await deeplab.load({base, quantizationBytes});
+//   // const colormap = deeplab.getColormap(base);
+//   // const labels = deeplab.getLabels(base);
+//   // console.log('colormap', colormap);
+//   // console.log('labels', labels);
 
-  console.log('segmenting...', net);
-  const uris = await mapExamples(project, async (className, blobUrl, index) => blobUrl);
-  const n = 10;
-  for (var i = 0; i < n; i++) {
-    await Promise.all(uris.map(async (blobUrl, index) => {
-      const containerEl = document.createElement('div');
-      // containerEl.style.display = 'flex';
-      containerEl.style.display = 'inline-block';
-      containerEl.style.marging = '10px';
-      // containerEl.style['flex-direction'] = 'row';
-      el.appendChild(containerEl);
+//   console.log('segmenting...', net);
+//   const uris = await mapExamples(project, async (className, blobUrl, index) => blobUrl);
+//   console.log('uris', uris);
+//   const n = 1;
+//   for (var i = 0; i < n; i++) {
+//     await Promise.all(uris.map(async (blobUrl, index) => {
+//       const containerEl = document.createElement('div');
+//       // containerEl.style.display = 'flex';
+//       containerEl.style.display = 'inline-block';
+//       containerEl.style.marging = '10px';
+//       // containerEl.style['flex-direction'] = 'row';
+//       el.appendChild(containerEl);
 
-      const imgEl = await imageFromUri(blobUrl);
-      imgEl.width = 224;
-      imgEl.height = 224;
-      // containerEl.appendChild(imgEl);
+//       const imgEl = await imageFromUri(blobUrl);
+//       imgEl.width = 224;
+//       imgEl.height = 224;
+//       // containerEl.appendChild(imgEl);
 
-      // const output = await deepLab.segment(imgEl);
-      // console.log('  output', output);
-      // const {height, width, segmentationMap} = output;
-      // const segmentationPixels = new ImageData(segmentationMap, width, height);
-      // console.log('  segmentationPixels', segmentationPixels);
-      // const overlayEl = canvasOverlay(imgEl, segmentationPixels);
+//       // const output = await deepLab.segment(imgEl);
+//       // console.log('  output', output);
+//       // const {height, width, segmentationMap} = output;
+//       // const segmentationPixels = new ImageData(segmentationMap, width, height);
+//       // console.log('  segmentationPixels', segmentationPixels);
+//       // const overlayEl = canvasOverlay(imgEl, segmentationPixels);
 
-      console.log('  index', index);
-      await make(net, containerEl, imgEl);
-    }));
-  }
+//       console.log('  index', index);
+//       await make(net, containerEl, imgEl);
+//     }));
+//   }
+// }
+
+function redraw(input, output) {
+  const originalImageFrame = input.getContext('2d').getImageData(0, 0, 224, 224);
+  output.getContext('2d').putImageData(originalImageFrame, 0, 0);
+  return;
 }
 
-async function make(net, containerEl, rasterEl) {
-  const segmentation = await net.segmentPerson(rasterEl); //, outputStride, segmentationThreshold);
-  console.log('segmentation', segmentation);
-
-  const mask = bodyPix.toMask(segmentation);
-  // const overlayEl = canvasOverlay(rasterEl, maskImagePixels);
-
-  const canvas = document.createElement('canvas');
+function composite(imageCanvas, imageMask, sceneImageEl, sceneMask) {
+  const opacity = 1.0;
   const maskBlurAmount = 0.1;
   const pixelCellWidth = 1;
-  const opacity = 1.0;
-  bodyPix.drawMask(canvas, rasterEl, mask, opacity, maskBlurAmount, false, pixelCellWidth);
-  // console.log('  overlayEl', overlayEl);
-  // containerEl.appendChild(canvas);
-
-  const r = Math.floor(Math.random() * 10000);
   
-  const sceneImgEl = await new Promise((resolve, reject) => {
-    const imgEl = document.createElement('img');
-    imgEl.onload = () => resolve(imgEl);
-    imgEl.onerror = reject;
-    imgEl.crossOrigin = 'Anonymous';
-    imgEl.src = `https://picsum.photos/244/244?${r}`;
-  });
-  sceneImgEl.width = 224;
-  sceneImgEl.height = 224;
+  // console.log('drawing image mask...');
+  const maskedImageCanvas = document.createElement('canvas');
+  maskedImageCanvas.width = 224;
+  maskedImageCanvas.height = 224;
+  maskedImageCanvas.style.width = '224px';
+  maskedImageCanvas.style.height = '224px';
+  maskedImageCanvas.classList.add('Masked');
+  bodyPix.drawMask(maskedImageCanvas, imageCanvas, imageMask, opacity, maskBlurAmount, false, pixelCellWidth);
 
-  // containerEl.appendChild(sceneImgEl);
-
-  const sceneCanvas = document.createElement('canvas');
-  const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
-  bodyPix.drawMask(sceneCanvas, sceneImgEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
-  // containerEl.appendChild(sceneCanvas);
+  // console.log('drawing scene mask...');
+  const maskedSceneCanvas = document.createElement('canvas');
+  bodyPix.drawMask(maskedSceneCanvas, sceneImageEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
 
   // composite
+  // console.log('composite...');
   const composited = document.createElement('canvas');
   composited.width = 224;
   composited.height = 224;
@@ -844,8 +856,8 @@ async function make(net, containerEl, rasterEl) {
   // low budget compositing
   const ctx = composited.getContext('2d');
   const outFrame = ctx.createImageData(224, 224);
-  const imgFrame = canvas.getContext('2d').getImageData(0, 0, 224, 224);
-  const sceneFrame = sceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
+  const imgFrame = maskedImageCanvas.getContext('2d').getImageData(0, 0, 224, 224);
+  const sceneFrame = maskedSceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
   let l = imgFrame.data.length / 4;
   for (let i = 0; i < l; i++) {
     let r = imgFrame.data[i * 4 + 0];
@@ -865,7 +877,6 @@ async function make(net, containerEl, rasterEl) {
     }
   }
   ctx.putImageData(outFrame, 0, 0);
-  containerEl.appendChild(composited);
   return composited;
 }
 
@@ -893,3 +904,107 @@ async function imageFromUri(src) {
   });
   return imgEl;
 }
+
+
+
+
+// async function make(net, el, canvasEl, sceneUrl) {
+//   // const overlayEl = canvasOverlay(rasterEl, maskImagePixels);
+
+//   console.log('container...');
+//   const containerEl = document.createElement('div');
+//   containerEl.style.display = 'inline-block';
+//   containerEl.style.margin = '10px';
+//   containerEl.style.padding = '10px';
+//   containerEl.style.border = '1px solid red';
+//   // el.appendChild(containerEl);
+//   console.log('containerEl', containerEl);
+
+//   // console.log('copied...');
+//   // const copied = document.createElement('canvas');
+//   // copied.classList.add('Copied');
+//   // copied.width = 224;
+//   // copied.height = 224;
+//   // copied.style.width = '224px';
+//   // copied.style.height = '224px';
+//   // const originalImageFrame = canvasEl.getContext('2d').getImageData(0, 0, 224, 224);
+//   // copied.getContext('2d').putImageData(originalImageFrame, 0, 0);
+//   // containerEl.appendChild(copied);
+//   // console.log('copied', copied);
+
+//   // console.log('segmenting...');
+//   // const segmentation = await net.segmentPerson(canvasEl); //, outputStride, segmentationThreshold);
+//   // console.log('segmentation', segmentation);
+
+//   // console.log('computing mask...');
+//   // const mask = bodyPix.toMask(segmentation);
+
+//   console.log('drawing mask...');
+//   const canvas = document.createElement('canvas');
+//   canvas.width = 224;
+//   canvas.height = 224;
+//   canvas.style.width = '224px';
+//   canvas.style.height = '224px';
+//   canvas.classList.add('Masked');
+//   containerEl.appendChild(canvas);
+//   const maskBlurAmount = 0.1;
+//   const pixelCellWidth = 1;
+//   const opacity = 1.0;
+//   console.log('  els', canvas, canvasEl, mask);
+//   console.log('  dims', [canvas.width, canvas.height], [canvasEl.width, canvasEl.height]);
+//   bodyPix.drawMask(canvas, canvasEl, mask, opacity, maskBlurAmount, false, pixelCellWidth);
+//   // console.log('  overlayEl', overlayEl);
+
+//   console.log('scene...', sceneUrl);
+//   const sceneImgEl = await new Promise((resolve, reject) => {
+//     const imgEl = document.createElement('img');
+//     imgEl.onload = () => resolve(imgEl);
+//     imgEl.onerror = reject;
+//     imgEl.crossOrigin = 'Anonymous';
+//     imgEl.src = sceneUrl;
+//   });
+//   sceneImgEl.width = 224;
+//   sceneImgEl.height = 224;
+
+//   containerEl.appendChild(sceneImgEl);
+
+//   // return composite(segmentation, sceneImgEl, canvas);
+//   console.log('scene mask...');
+//   const sceneCanvas = document.createElement('canvas');
+//   const sceneMask = bodyPix.toMask(segmentation, {r: 0, g: 0, b: 0, a: 255}, {r: 0, g: 0, b: 0, a: 0}); // invert
+//   bodyPix.drawMask(sceneCanvas, sceneImgEl, sceneMask, opacity, maskBlurAmount, false, pixelCellWidth);
+//   containerEl.appendChild(sceneCanvas);
+
+//   // composite
+//   console.log('composite...');
+//   const composited = document.createElement('canvas');
+//   composited.width = 224;
+//   composited.height = 224;
+
+//   // low budget compositing
+//   const ctx = composited.getContext('2d');
+//   const outFrame = ctx.createImageData(224, 224);
+//   const imgFrame = canvas.getContext('2d').getImageData(0, 0, 224, 224);
+//   const sceneFrame = sceneCanvas.getContext('2d').getImageData(0, 0, 224, 224);
+//   let l = imgFrame.data.length / 4;
+//   for (let i = 0; i < l; i++) {
+//     let r = imgFrame.data[i * 4 + 0];
+//     let g = imgFrame.data[i * 4 + 1];
+//     let b = imgFrame.data[i * 4 + 2];
+//     let a = imgFrame.data[i * 4 + 3];
+//     if (r === 0 && g === 0 && b === 0) {;
+//       outFrame.data[i * 4 + 0] = sceneFrame.data[i * 4 + 0];
+//       outFrame.data[i * 4 + 1] = sceneFrame.data[i * 4 + 1];
+//       outFrame.data[i * 4 + 2] = sceneFrame.data[i * 4 + 2];
+//       outFrame.data[i * 4 + 3] = sceneFrame.data[i * 4 + 3];
+//     } else {
+//       outFrame.data[i * 4 + 0] = imgFrame.data[i * 4 + 0];
+//       outFrame.data[i * 4 + 1] = imgFrame.data[i * 4 + 1];
+//       outFrame.data[i * 4 + 2] = imgFrame.data[i * 4 + 2];
+//       outFrame.data[i * 4 + 3] = imgFrame.data[i * 4 + 3];
+//     }
+//   }
+//   ctx.putImageData(outFrame, 0, 0);
+//   containerEl.appendChild(composited);
+//   return composited;
+// }

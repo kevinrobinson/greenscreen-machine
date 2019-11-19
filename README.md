@@ -1,27 +1,14 @@
-# inspectable-machine
-just early hacking so far
+# webcam-greenscreen
+playing with training sets and models from a webcam in Teachable Machine
+
+things:
+- find the person & swap background. how does the prediction change?
+- does it improve generalization if used as augmentation (eg, inside/outside, other wall in the room)?
+
 
 ## screenshots
-### flow
-![flow](docs/docs-1.png)
+### what
+![what-is-it](docs/what-is-it.png)
 
-### browsing
-![browsing](docs/docs-2.png)
-
-### embedding spaces
-![embedding spaces](docs/docs-3.png)
-
-### stretching the space
-![stretching the spaces](docs/docs-4.png)
-
-### 3d sprites are ooooh, but confusing
-![3d sprites are ooooh, but confusing](docs/docs-5.png)
-
-### facets is better for exploring
-![facets is better for exploring](docs/docs-6.png)
-
-
-## datasets
-### oxford pets
-https://www.robots.ox.ac.uk/~vgg/data/pets/
-https://www.kaggle.com/tanlikesmath/the-oxfordiiit-pet-dataset
+### in all the places
+![squares](docs/squares.png)

@@ -3,6 +3,10 @@
 const RANDOM_SEED = 42;
 console.log('RANDOM_SEED', RANDOM_SEED);
 
+function debug(...params) {
+  //console.log(...params);
+}
+
 async function readBlobFromZip(zip, filename) {
   let zipEntry = null;
   zip.forEach((relativePath, entry) => {

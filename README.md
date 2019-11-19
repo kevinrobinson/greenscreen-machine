@@ -1,4 +1,4 @@
-# webcam-greenscreen
+# greenscreen-machine
 playing with training sets and models from a webcam in Teachable Machine
 
 things:

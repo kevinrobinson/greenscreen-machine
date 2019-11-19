@@ -3,7 +3,7 @@
   }
 
 body {
-  max-width: 1200px;
+    /*max-width: 1200px;*/
   background: #E8EAED;
   margin: 20px;
   margin-bottom: 40px;
@@ -260,3 +260,14 @@ h2 {
 }*/
 
 
+
+
+
+.RealtimeContainer {
+  display: block;
+  width: 800px;
+}
+
+.Realtime {
+  margin: 10px;
+}

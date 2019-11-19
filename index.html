@@ -14,35 +14,6 @@
   <script src="https://unpkg.com/@tensorflow-models/body-pix@2.0.2/dist/body-pix.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.2.2/dist/jszip.min.js"></script>
-
-  <script src="https://unpkg.com/umap-js@1.2.2/lib/umap-js.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.106.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/scatter-gl@0.0.1/lib/scatter-gl.min.js"></script>
-  <script src="https://d3js.org/d3.v4.js"></script>
-  
-  <!-- hash64 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
-
-  <!-- facets, polymer glue code -->
-  <!-- polymer, for facets, see https://github.com/PAIR-code/what-if-tool/issues/7#issuecomment-514660444 -->
-  <script>
-    window.addEventListener('WebComponentsReady', function() {
-      var link = document.createElement('link');
-      link.rel = "import";
-      link.href = "./src/facets-jupyter.html";
-      link.onload = function() {
-        console.log('> facets tag loaded');
-      };
-      document.head.appendChild(link);
-    });
-  </script>
-  <script src="./src/webcomponents-lite.js"></script>
-
-  <script>
-    window.module = {exports: {}}; // hack for prando umd not working
-  </script>
-  <script src="https://unpkg.com/prando@5.1.1/dist/Prando.umd.js"></script>
 
   <div>
     <div style="margin: 10px; border-radius: 10px; box-shadow: 0px 2px 2px rgba(0,0,0,0.20); background: green; backround-repeat: no-repeat; padding: 20px;">
@@ -53,29 +24,19 @@
 
       <div class="Panel">
         <div class="Panel-content">
-          <h2>1. Augment people images</h2>
-          <div class="Panel-text">First, open a project from <a target="_blank" href="https://teachablemachine.withgoogle.com/train/image">Teachable Machine</a> that contains images trained on people (eg, you on your webcam).
-
-          <div style="margin-top: 10px;">Then, watch augmented images be created by masking the background with <a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">BodyPix</a> and compositing them into images from <a href="https://picsum.photos/">picsum.photos</a>.</div>
-          </div>
+          <h2>webcam-greenscreen</h2>
+          <div style="margin-top: 10px;">Look into the webcam, and see some augmented images be created by masking the background with <a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">BodyPix</a> and compositing them into images from <a href="https://picsum.photos/">picsum.photos</a>.</div>
         </div>
         <div class="Panel-actions">
           <div class="Status" id="generalization-status"></div>
-          <div class="File Button">
+          <button class="File Button">
             <div class="File-caption">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6H20C21.1 6 22 6.9 22 8V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18L2.01 6C2.01 4.9 2.9 4 4 4H10L12 6ZM4 8V18H20V8H4Z" fill="#888"></path>
               </svg>
-              Open project.zip
+              Start
             </div>
-            <input id="upload-generalization-zip-input" class="fileList" type="file" accept="application/zip">  
-          </div>
-          <a class="ExampleLink" href="/data/example-generalization-project.zip">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M13 12.17L15.59 9.59L17 11L12 16L7 11L8.41 9.59L11 12.17V4H13V12.17ZM6 15H4V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V15H18V18H6V15Z" fill="#888"></path>
-            </svg>
-            <span>Download example</span>
-          </a>
+          </button >
         </div>
       </div>
     </div>
@@ -89,13 +50,8 @@
   </div>
 
   <script type="module">
-    import {create} from './src/bar-graph.js';
-    import {facets} from './src/facets.js';
     import {main} from './src/index.js';
-    main({
-      facets: facets,
-      createBarGraph: create
-    });
+    main();
   </script>
 </body>
 </html>

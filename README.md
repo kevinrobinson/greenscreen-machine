@@ -13,6 +13,9 @@ things:
 ### greenscreen onto different backgrounds
 <img alt="greenscreen" src="docs/greenscreen.png" height="600" />
 
+### take a model you trained with the webcam
+<img alt="training" src="docs/training.png" height="450" />
+
 ### add your model predictions
 <img alt="all-waving" src="docs/all-waving.png" height="600" />
 

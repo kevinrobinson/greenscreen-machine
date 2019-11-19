@@ -650,12 +650,27 @@ function addWaitingEl(el) {
 
 
 export async function main() {
+  let closeFn = null;
   const buttonEl = document.querySelector('.Button');
+  const instructionsEl = document.querySelector('.IntructionsText');
   const workspaceEl = document.querySelector('#workspace');
-  buttonEl.addEventListener('click', async e => await runWebcam(workspaceEl));
+  buttonEl.addEventListener('click', async e => {
+    if (closeFn) {
+      closeFn();
+      closeFn = null;
+      buttonEl.textContent = 'Start';
+      instructionsEl.style.display = 'block';
+      return;
+    }
+
+    closeFn = (await runWebcam(workspaceEl)).close;
+    buttonEl.textContent = 'Stop';
+    instructionsEl.style.display = 'none';
+  });
 }
 
 async function runWebcam(el) {
+  el.innerHTML = '';
   el.style.margin = '20px';
 
   console.log('camera-ing...');
@@ -712,7 +727,7 @@ async function runWebcam(el) {
   // scenes
   // good ones:
   // https://picsum.photos/id/479/224/224
-  const goodNumbers = _.shuffle([421, 616, 479, 650, 724, 564, 688, 193, 458, 613]);
+  const goodNumbers = _.shuffle([337, 289, 421, 616, 479, 650, 724, 564, 688, 193, 458, 613]);
   const sceneUrls = _.range(0, 9).map(i => {
     // const num = Math.floor(Math.random() * 999);  // id space has holes
     const num = goodNumbers[i];
@@ -754,6 +769,16 @@ async function runWebcam(el) {
   });
   el.appendChild(realtimeContainerEl);
 
+  // click for new scene
+  realtimeEls.forEach((realtimeEl, i) => {
+    realtimeEl.addEventListener('click', e => {
+      console.log('click!');
+      const num = Math.floor(Math.random() * 299);  // id space has holes
+      sceneUrls[i] = `https://picsum.photos/id/${num}/224/224`;
+      sceneImgEls[i].src = sceneUrls[i];
+    });
+  });
+
   console.log('loading...');
   const net = await bodyPix.load({
     // architecture: 'ResNet50',
@@ -765,7 +790,14 @@ async function runWebcam(el) {
     quantBytes: 2
   });
   console.log('loaded.');
+
+  let shouldAbort = false;
   async function tick() {
+    if (shouldAbort) {
+      console.log('aborted.');
+      return;
+    }
+
     // scaling bug?
     // console.log('webcam.webcam.videoWidth', webcam.webcam.videoWidth)
     // console.log('webcam.webcam.videoHeight', webcam.webcam.videoHeight);
@@ -791,9 +823,17 @@ async function runWebcam(el) {
       redraw(compositedEl, realtimeEls[i]);
     }
 
-    requestAnimationFrame(tick);
+    setTimeout(tick, 16);//requestAnimationFrame(tick);
   }
-  setTimeout(tick, 100);
+
+  tick();
+
+  function close() {
+    webcam.stop();
+    shouldAbort = true;
+  }
+
+  return {close};
 }
 
 

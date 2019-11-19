@@ -7,8 +7,14 @@ things:
 
 
 ## screenshots
-### what
-![what-is-it](docs/what-is-it.png)
+### how it works
+![intro](docs/intro.png)
 
-### in all the places
-![squares](docs/squares.png)
+### greenscreen
+![greenscreen](docs/greenscreen.png)
+
+### add your model predictions
+![mixed](docs/mixed.png)
+
+### seems like these are mostly waving...
+![all-waving](docs/all-waving.png)

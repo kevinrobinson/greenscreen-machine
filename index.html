@@ -14,6 +14,7 @@
   <script src="https://unpkg.com/@tensorflow-models/body-pix@2.0.2/dist/body-pix.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.2.2/dist/jszip.min.js"></script>
 
   <div>
     <div style="margin: 10px; border-radius: 10px; box-shadow: 0px 2px 2px rgba(0,0,0,0.20); background: green; backround-repeat: no-repeat; padding: 20px;">
@@ -24,19 +25,45 @@
 
       <div class="Panel">
         <div class="Panel-content">
-          <h2>webcam-greenscreen</h2>
-          <div class="IntructionsText" style="margin-top: 10px;">Look into the webcam, and see some augmented images created by masking the background with <a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">BodyPix</a> and compositing them into images from <a href="https://picsum.photos/">picsum.photos</a>.</div>
+          <h2>1. Turn on webcam greenscreen</h2>
+          <div class="IntructionsText" style="margin-top: 10px;">
+            <div>This will turn on your webcam, use <a href="https://github.com/tensorflow/tfjs-models/tree/master/body-pix">BodyPix</a> to edit out the background, and composite any people into images from <a href="https://picsum.photos/">picsum.photos</a>.</div>
+            <div style="margin-top: 10px;">Click on an image for a new background.</div>
+          </div>
         </div>
         <div class="Panel-actions">
-          <div class="Status" id="generalization-status"></div>
-          <button class="File Button">Start</button >
+          <div class="Status" id="webcam-status"></div>
+          <button class="File Button" id="webcam-start">Start</button >
+        </div>
+      </div>
+
+      <div class="Panel">
+        <div class="Panel-content">
+          <h2>2. Try your image model</h2>
+          <div class="Panel-text">Next, load an image model you created with your webcam in <a target="_blank" href="https://teachablemachine.withgoogle.com/train/image">Teachable Machine</a>, and see how it does.  This only accepts zip files uploaded locally.</div>
+        </div>
+        <div class="Panel-actions">
+          <div class="Status" id="model-status"></div>
+          <div class="File Button">
+            <div class="File-caption">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6H20C21.1 6 22 6.9 22 8V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18L2.01 6C2.01 4.9 2.9 4 4 4H10L12 6ZM4 8V18H20V8H4Z" fill="#888"></path>
+              </svg>
+              Open model.zip
+            </div>
+            <input id="model-zip-input" class="fileList" type="file" accept="application/zip">
+          </div>
+          <a class="ExampleLink" href="/data/d-waving-model.zip"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M13 12.17L15.59 9.59L17 11L12 16L7 11L8.41 9.59L11 12.17V4H13V12.17ZM6 15H4V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V15H18V18H6V15Z" fill="#888"></path>
+            </svg>
+            <span>Download example</span>
+          </a>
         </div>
       </div>
     </div>
 
     <div>
       <div class="Workspace" id="workspace"></div>
-      <div id="generalization-preview"></div>
     </div>
 
     <div id="log"></div>

@@ -11,11 +11,11 @@ things:
 ![intro](docs/intro.png)
 
 ### greenscreen onto different backgrounds
-<img alt="greenscreen" src="docs/greenscreen.png" height="300" />
+<img alt="greenscreen" src="docs/greenscreen.png" height="600" />
 
 ### add your model predictions
-<img alt="all-waving" src="ocs/all-waving.png" height="300" />
+<img alt="all-waving" src="docs/all-waving.png" height="600" />
 
 ### seems to think there are all 'waving'...
-<img alt="mixed" src="docs/mixed.png" height="300" />
+<img alt="mixed" src="docs/mixed.png" height="600" />
 

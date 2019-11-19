@@ -10,11 +10,12 @@ things:
 ### how it works
 ![intro](docs/intro.png)
 
-### greenscreen
-![greenscreen](docs/greenscreen.png)
+### greenscreen onto different backgrounds
+<img alt="greenscreen" src="docs/greenscreen.png" height="300" />
 
 ### add your model predictions
-![mixed](docs/mixed.png)
+<img alt="all-waving" src="ocs/all-waving.png" height="300" />
 
-### seems like these are mostly waving...
-![all-waving](docs/all-waving.png)
+### seems to think there are all 'waving'...
+<img alt="mixed" src="docs/mixed.png" height="300" />
+

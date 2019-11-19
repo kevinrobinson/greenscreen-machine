@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "serve . -p 3003",
+    "start": "serve . -p 3000",
     "build": "rm -rf dist && mkdir dist && cp -r img dist && cp -r src dist && cp -r data dist && cp index.html dist"
   },
   "devDependencies": {

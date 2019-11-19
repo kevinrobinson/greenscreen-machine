@@ -684,13 +684,13 @@ async function runWebcam(el) {
   //   });
   // });
         
-  const flipped = false;
-  const webcam = new tmImage.Webcam(224, 224, flipped);
+  const flipHorizontal = false; // not working as expected
+  const webcam = new tmImage.Webcam(224, 224, flipHorizontal);
   await webcam.setup();
   webcam.play();
 
-  el.appendChild(webcam.webcam);  // bug?
-  el.appendChild(webcam.canvas);  // bug?
+  // el.appendChild(webcam.webcam);  // bug?
+  // el.appendChild(webcam.canvas);  // bug?
 
    // bug?
   webcam.canvas.width = 224;
@@ -712,9 +712,10 @@ async function runWebcam(el) {
   // scenes
   // good ones:
   // https://picsum.photos/id/479/224/224
-  const goodNumbers = [421, 616, 479];
+  const goodNumbers = _.shuffle([421, 616, 479, 650, 724, 564, 688, 193, 458, 613]);
   const sceneUrls = _.range(0, 9).map(i => {
-    const num = Math.floor(Math.random() * 999);
+    // const num = Math.floor(Math.random() * 999);  // id space has holes
+    const num = goodNumbers[i];
     return `https://picsum.photos/id/${num}/224/224`
     // imgEl.src = `https://picsum.photos/224/224?${r}`;
     // imgEl.src = 'https://picsum.photos/id/210/224/224';
@@ -736,6 +737,7 @@ async function runWebcam(el) {
     sceneImgEl.style.height = '224px';
     sceneImgEls[i] = sceneImgEl;
   }
+  console.log('sceneImgEls', sceneImgEls);
 
   // realtime
   const realtimeContainerEl = document.createElement('div');
@@ -753,7 +755,15 @@ async function runWebcam(el) {
   el.appendChild(realtimeContainerEl);
 
   console.log('loading...');
-  const net = await bodyPix.load();
+  const net = await bodyPix.load({
+    // architecture: 'ResNet50',
+    // outputStride: 32,
+    // quantBytes: 2
+    architecture: 'MobileNetV1',
+    outputStride: 16,
+    multiplier: 0.75,
+    quantBytes: 2
+  });
   console.log('loaded.');
   async function tick() {
     // scaling bug?
@@ -761,9 +771,16 @@ async function runWebcam(el) {
     // console.log('webcam.webcam.videoHeight', webcam.webcam.videoHeight);
 
     webcam.update();
-    const croppedEl = cropTo(webcam.canvas, 224, flipped);
+    const croppedEl = cropTo(webcam.canvas, 224, flipHorizontal);
     console.log('segmenting...');
-    const segmentation = await net.segmentPerson(croppedEl); //, outputStride, segmentationThreshold);
+    const outputStride = 16;
+    const segmentationThreshold = 0.70; // over default 0.5
+    // const segmentation = await net.segmentPerson(croppedEl, outputStride, segmentationThreshold);
+    const segmentation = await net.segmentPerson(croppedEl, {
+      flipHorizontal,
+      internalResolution: 'high',
+      segmentationThreshold: 0.6
+    });
 
     console.log('computing masks...');
     const imageMask = bodyPix.toMask(segmentation);
